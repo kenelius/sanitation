@@ -1,0 +1,49 @@
+const jwt = require("jsonwebtoken");
+
+// ===========================
+// 🔐 AUTHENTICATION MIDDLEWARE
+
+// ===========================
+const protect = async (req, res, next) => {
+  let token;
+
+  // Check if token exists and starts with "Bearer"
+  if (
+    req.headers.authorization &&
+    req.headers.authorization.startsWith("Bearer")
+  ) {
+    try {
+      // Get token from header
+      token = req.headers.authorization.split(" ")[1];
+
+      // Verify token
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+      // Get user from token (without password)
+      req.user = await user.findById(decoded.id).select("-password");
+
+      next(); // Proceed to next middleware or route handler
+    } catch (error) {
+      console.error(error);
+      res.status(401).json({ message: "Not authorized, invalid token" });
+    }
+  }
+
+  if (!token) {
+    res.status(401).json({ message: "Not authorized, no token provided" });
+  }
+};
+
+// ===========================
+// ⚠️ ERROR HANDLING MIDDLEWARE
+// ===========================
+const errorHandler = (err, req, res, next) => {
+  const statusCode = res.statusCode === 200 ? 500 : res.statusCode;
+  res.status(statusCode);
+  res.json({
+    message: err.message || "Server Error",
+    stack: process.env.NODE_ENV === "production" ? null : err.stack,
+  });
+};
+
+module.exports = { protect, errorHandler };
